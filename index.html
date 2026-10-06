@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DP Stock Inventory</title>
+  <meta name="theme-color" content="#ff6600">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="https://i.imgur.com/9Dyz0Ov.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="DP Stock">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #ff6600 0%, #ff9933 100%);
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+      font-size: 22px;
+      margin-bottom: 20px;
+    }
+    .logo-icon {
+      display: block;
+      margin: 0 auto 15px auto;
+      width: 180px;
+      height: auto;
+      border-radius: 10px;
+    }
+    .input-group { margin: 15px 0; }
+    .input-group label {
+      display: block;
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .search-box {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      box-sizing: border-box;
+      margin-bottom: 5px;
+    }
+    .item-list {
+      width: 100%;
+      height: 250px;
+      overflow-y: auto;
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      padding: 5px;
+      box-sizing: border-box;
+      background: white;
+    }
+    .item-row {
+      padding: 8px 10px;
+      cursor: pointer;
+      border-radius: 5px;
+      margin-bottom: 2px;
+      font-size: 13px;
+    }
+    .item-row:hover { background: #f0f0f0; }
+    .item-row.selected { background: #ff6600; color: white; }
+    .input-group input[type="number"] {
+      width: 100%;
+      padding: 14px;
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+    .btn {
+      width: 100%;
+      padding: 18px;
+      margin: 8px 0;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .btn-add { background: #4CAF50; color: white; }
+    .btn-remove { background: #f44336; color: white; }
+    .btn-query { background: #2196F3; color: white; }
+    #status {
+      text-align: center;
+      margin-top: 15px;
+      padding: 15px;
+      border-radius: 10px;
+      font-size: 15px;
+      min-height: 20px;
+    }
+    .success { background: #d4edda; color: #155724; }
+    .error { background: #f8d7da; color: #721c24; }
+    .loading { background: #fff3cd; color: #856404; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="https://i.imgur.com/9Dyz0Ov.png" class="logo-icon" alt="Design Plastics">
+    <h1>DP Stock Inventory System</h1>
+    <div class="input-group">
+      <label>Item Select කරන්න:</label>
+      <input type="text" id="searchBox" class="search-box" placeholder="🔍 Type කරලා search කරන්න..." oninput="filterItems()">
+      <div id="itemList" class="item-list">
+        <div class="item-row">Loading...</div>
+      </div>
+    </div>
+    <div class="input-group">
+      <label>Quantity:</label>
+      <input type="number" id="qtyInput" placeholder="උදා: 10" value="0">
+    </div>
+    <button class="btn btn-add" onclick="doAction('add')">➕ Stock එකට Add කරන්න</button>
+    <button class="btn btn-remove" onclick="doAction('remove')">➖ Stock එකෙන් අයින් කරන්න</button>
+    <button class="btn btn-query" onclick="doAction('query')">🔍 Stock එකේ කීයද අහන්න</button>
+    <div id="status"></div>
+  </div>
+  <script>
+    var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbza1_O4AdYHA24D-yiSf59bgPbNRDXEq6gSlpMbiXq2PljejLZKcr0VvdW03FX1AhSm/exec';
+    var allItems = [];
+    var selectedItem = '';
+
+    function setStatus(msg, type) {
+      var status = document.getElementById('status');
+      status.textContent = msg;
+      status.className = type || '';
+    }
+
+    function loadItems() {
+      fetch(SCRIPT_URL + '?action=getAllItems')
+        .then(function(r) { return r.json(); })
+        .then(function(items) {
+          allItems = items;
+          renderList(items);
+          setStatus('✅ Items ' + items.length + ' ක් load වුනා', 'success');
+        })
+        .catch(function(err) {
+          setStatus('Error: ' + err, 'error');
+        });
+    }
+
+    function renderList(items) {
+      var list = document.getElementById('itemList');
+      list.innerHTML = '';
+      if (items.length === 0) {
+        list.innerHTML = '<div class="item-row">No items found</div>';
+        return;
+      }
+      for (var i = 0; i < items.length; i++) {
+        var row = document.createElement('div');
+        row.className = 'item-row';
+        row.textContent = items[i].code + ' — ' + items[i].description;
+        row.setAttribute('data-desc', items[i].description);
+        if (items[i].description === selectedItem) row.className += ' selected';
+        row.onclick = function() { selectItem(this); };
+        list.appendChild(row);
+      }
+    }
+
+    function selectItem(element) {
+      var rows = document.querySelectorAll('.item-row');
+      for (var i = 0; i < rows.length; i++) rows[i].classList.remove('selected');
+      element.classList.add('selected');
+      selectedItem = element.getAttribute('data-desc');
+      setStatus('✅ ' + selectedItem, 'success');
+    }
+
+    function filterItems() {
+      var search = document.getElementById('searchBox').value.toLowerCase().trim();
+      if (search === '') { renderList(allItems); return; }
+      var filtered = allItems.filter(function(i) {
+        return i.description.toLowerCase().indexOf(search) !== -1 ||
+               i.code.toLowerCase().indexOf(search) !== -1;
+      });
+      renderList(filtered);
+    }
+
+    function doAction(action) {
+      var qty = parseInt(document.getElementById('qtyInput').value) || 0;
+      if (!selectedItem) { setStatus('Item එකක් select කරන්න.', 'error'); return; }
+      if ((action === 'add' || action === 'remove') && qty <= 0) {
+        setStatus('Quantity එක type කරන්න.', 'error'); return;
+      }
+      setStatus('⏳ හොයනවා...', 'loading');
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ item: selectedItem, quantity: qty, action: action })
+      })
+      .then(function(r) { return r.text(); })
+      .then(function(response) {
+        setStatus(response, response.indexOf('හරි') !== -1 ? 'success' : 'error');
+      })
+      .catch(function(err) {
+        setStatus('Error: ' + err, 'error');
+      });
+    }
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+
+    window.onload = function() { loadItems(); };
+  </script>
+</body>
+</html>
