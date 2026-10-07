@@ -99,6 +99,7 @@
     .btn-add { background: #4CAF50; color: white; }
     .btn-remove { background: #f44336; color: white; }
     .btn-query { background: #2196F3; color: white; }
+    .btn-refresh { background: #9C27B0; color: white; }
     #status {
       text-align: center;
       margin-top: 15px;
@@ -110,6 +111,12 @@
     .success { background: #d4edda; color: #155724; }
     .error { background: #f8d7da; color: #721c24; }
     .loading { background: #fff3cd; color: #856404; }
+    .auto-refresh-info {
+      text-align: center;
+      font-size: 12px;
+      color: #999;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
@@ -130,12 +137,15 @@
     <button class="btn btn-add" onclick="doAction('add')">➕ Stock එකට Add කරන්න</button>
     <button class="btn btn-remove" onclick="doAction('remove')">➖ Stock එකෙන් අයින් කරන්න</button>
     <button class="btn btn-query" onclick="doAction('query')">🔍 Stock එකේ කීයද අහන්න</button>
+    <button class="btn btn-refresh" onclick="loadItems()">🔄 Refresh List</button>
     <div id="status"></div>
+    <div class="auto-refresh-info" id="autoRefreshInfo">Auto-refresh: ON (30s)</div>
   </div>
   <script>
     var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbza1_O4AdYHA24D-yiSf59bgPbNRDXEq6gSlpMbiXq2PljejLZKcr0VvdW03FX1AhSm/exec';
     var allItems = [];
     var selectedItem = '';
+    var autoRefreshInterval;
 
     function setStatus(msg, type) {
       var status = document.getElementById('status');
@@ -144,12 +154,15 @@
     }
 
     function loadItems() {
+      setStatus('🔄 Loading items...', 'loading');
+
       fetch(SCRIPT_URL + '?action=getAllItems')
         .then(function(r) { return r.json(); })
         .then(function(items) {
           allItems = items;
           renderList(items);
           setStatus('✅ Items ' + items.length + ' ක් load වුනා', 'success');
+          updateAutoRefreshTime();
         })
         .catch(function(err) {
           setStatus('Error: ' + err, 'error');
@@ -212,11 +225,21 @@
       });
     }
 
+    function updateAutoRefreshTime() {
+      var info = document.getElementById('autoRefreshInfo');
+      var time = new Date().toLocaleTimeString();
+      info.textContent = '🔄 Auto-refresh: ON (30s) — Last: ' + time;
+    }
+
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js');
     }
 
-    window.onload = function() { loadItems(); };
+    window.onload = function() { 
+      loadItems();
+      // Auto-refresh every 30 seconds
+      autoRefreshInterval = setInterval(loadItems, 30000);
+    };
   </script>
 </body>
 </html>
