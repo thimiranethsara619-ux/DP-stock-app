@@ -117,10 +117,24 @@
       color: #999;
       margin-top: 10px;
     }
+    .update-banner {
+      background: #2196F3;
+      color: white;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+      margin-bottom: 15px;
+      cursor: pointer;
+      display: none;
+    }
+    .update-banner:hover { background: #1976D2; }
   </style>
 </head>
 <body>
   <div class="container">
+    <div class="update-banner" id="updateBanner" onclick="applyUpdate()">
+      🔄 New version available! Tap to update
+    </div>
     <img src="https://i.imgur.com/9Dyz0Ov.png" class="logo-icon" alt="Design Plastics">
     <h1>DP Stock Inventory System</h1>
     <div class="input-group">
@@ -146,6 +160,8 @@
     var allItems = [];
     var selectedItem = '';
     var autoRefreshInterval;
+    var waitingWorker = null;
+    var refreshing = false;
 
     function setStatus(msg, type) {
       var status = document.getElementById('status');
@@ -154,6 +170,8 @@
     }
 
     function loadItems() {
+      if (refreshing) return;
+      refreshing = true;
       setStatus('🔄 Loading items...', 'loading');
 
       fetch(SCRIPT_URL + '?action=getAllItems')
@@ -163,9 +181,11 @@
           renderList(items);
           setStatus('✅ Items ' + items.length + ' ක් load වුනා', 'success');
           updateAutoRefreshTime();
+          refreshing = false;
         })
         .catch(function(err) {
           setStatus('Error: ' + err, 'error');
+          refreshing = false;
         });
     }
 
@@ -231,14 +251,52 @@
       info.textContent = '🔄 Auto-refresh: ON (30s) — Last: ' + time;
     }
 
+    function applyUpdate() {
+      if (waitingWorker) {
+        waitingWorker.postMessage({ action: 'skipWaiting' });
+      }
+      window.location.reload(true);
+    }
+
+    // Service Worker Registration + Auto-Update
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js');
+      navigator.serviceWorker.register('sw.js').then(function(reg) {
+        // Check for updates every time
+        reg.update();
+
+        // Detect new version
+        reg.onupdatefound = function() {
+          var installingWorker = reg.installing;
+          installingWorker.onstatechange = function() {
+            if (installingWorker.state === 'installed') {
+              if (navigator.serviceWorker.controller) {
+                // New version available
+                waitingWorker = installingWorker;
+                document.getElementById('updateBanner').style.display = 'block';
+              }
+            }
+          };
+        };
+      });
+
+      // Reload when new SW takes over
+      navigator.serviceWorker.addEventListener('controllerchange', function() {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      });
     }
 
     window.onload = function() { 
       loadItems();
-      // Auto-refresh every 30 seconds
       autoRefreshInterval = setInterval(loadItems, 30000);
+
+      // Check for SW update on page load
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration().then(function(reg) {
+          if (reg) reg.update();
+        });
+      }
     };
   </script>
 </body>
