@@ -1,4 +1,4 @@
-var CACHE_NAME = 'dp-stock-v2';
+var CACHE_NAME = 'dp-stock-v2-1';
 
 self.addEventListener('install', function(e) {
   self.skipWaiting();
@@ -37,4 +37,10 @@ self.addEventListener('fetch', function(e) {
       return caches.match(e.request);
     })
   );
+});
+
+self.addEventListener('message', function(e) {
+  if (e.data.action === 'skipWaiting') {
+    self.skipWaiting();
+  }
 });
