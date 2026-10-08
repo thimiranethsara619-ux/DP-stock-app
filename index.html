@@ -89,7 +89,7 @@
     }
     .item-list {
       width: 100%;
-      height: 200px;
+      height: 250px;
       overflow-y: auto;
       border: 2px solid #ddd;
       border-radius: 10px;
@@ -97,7 +97,7 @@
       background: white;
     }
     .item-row {
-      padding: 8px 10px;
+      padding: 10px;
       cursor: pointer;
       border-radius: 5px;
       margin-bottom: 2px;
@@ -197,6 +197,7 @@
       border-bottom: 1px solid #f0f0f0;
     }
     .sidebar-item:hover { background: #fff3e0; }
+    .sidebar-item.active { background: #fff3e0; color: #ff6600; font-weight: bold; }
     .overlay {
       position: fixed;
       top: 0;
@@ -217,12 +218,12 @@
     .stat-card {
       background: linear-gradient(135deg, #ff6600, #ff9933);
       color: white;
-      padding: 15px;
+      padding: 20px;
       border-radius: 12px;
       text-align: center;
     }
     .stat-card .value {
-      font-size: 24px;
+      font-size: 32px;
       font-weight: bold;
     }
     .stat-card .label {
@@ -232,16 +233,6 @@
     }
     .page { display: none; }
     .page.active { display: block; }
-    .back-btn {
-      background: #ff6600;
-      color: white;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 8px;
-      cursor: pointer;
-      margin-bottom: 15px;
-      font-weight: bold;
-    }
   </style>
 </head>
 <body>
@@ -254,9 +245,9 @@
     <div>DP Stock</div>
   </div>
   <div class="sidebar-menu">
-    <div class="sidebar-item" onclick="showPage('dashboard')">🏠 Dashboard</div>
-    <div class="sidebar-item" onclick="showPage('stock')">📦 Stock</div>
-    <div class="sidebar-item" onclick="showPage('reports')">📊 Reports</div>
+    <div class="sidebar-item" onclick="showPage('dashboard')">📊 Dashboard</div>
+    <div class="sidebar-item active" onclick="showPage('stock')">📦 Stock</div>
+    <div class="sidebar-item" onclick="showPage('reports')">📈 Reports</div>
     <div class="sidebar-item" onclick="showPage('history')">📜 History</div>
     <div class="sidebar-item" onclick="showPage('categories')">📁 Categories</div>
     <div class="sidebar-item" onclick="showPage('settings')">⚙️ Settings</div>
@@ -274,31 +265,9 @@
 <!-- Container -->
 <div class="container">
 
-  <!-- Dashboard Page -->
-  <div id="dashboard" class="page active">
+  <!-- Stock Page (MAIN - Default) -->
+  <div id="stock" class="page active">
     <div class="card">
-      <img src="https://i.imgur.com/9Dyz0Ov.png" class="logo-icon" alt="Design Plastics">
-      <h1>DP Stock Inventory System</h1>
-      <div class="cards-grid">
-        <div class="stat-card">
-          <div class="value" id="totalItems">0</div>
-          <div class="label">මුළු භාණ්ඩ</div>
-        </div>
-        <div class="stat-card">
-          <div class="value" id="lowStock">0</div>
-          <div class="label">අඩු තොග</div>
-        </div>
-      </div>
-      <div style="text-align:center; margin-top:20px; font-size:13px; color:#888;">
-        ☰ Menu එකෙන් වෙනත් පිටු වලට යන්න
-      </div>
-    </div>
-  </div>
-
-  <!-- Stock Page -->
-  <div id="stock" class="page">
-    <div class="card">
-      <button class="back-btn" onclick="showPage('dashboard')">← Back</button>
       <h1>Stock Management</h1>
 
       <div class="input-group">
@@ -327,11 +296,31 @@
     </div>
   </div>
 
+  <!-- Dashboard Page -->
+  <div id="dashboard" class="page">
+    <div class="card">
+      <img src="https://i.imgur.com/9Dyz0Ov.png" class="logo-icon" alt="Design Plastics">
+      <h1>Dashboard</h1>
+      <div class="cards-grid">
+        <div class="stat-card">
+          <div class="value" id="totalItems">0</div>
+          <div class="label">මුළු භාණ්ඩ</div>
+        </div>
+        <div class="stat-card">
+          <div class="value" id="lowStock">0</div>
+          <div class="label">අඩු තොග</div>
+        </div>
+      </div>
+      <div style="text-align:center; margin-top:20px; font-size:13px; color:#888;">
+        ☰ Menu එකෙන් වෙනත් පිටු වලට යන්න
+      </div>
+    </div>
+  </div>
+
   <!-- Reports Page -->
   <div id="reports" class="page">
     <div class="card">
-      <button class="back-btn" onclick="showPage('dashboard')">← Back</button>
-      <h1>📊 Reports</h1>
+      <h1>📈 Reports</h1>
       <p style="text-align:center; color:#888;">Reports coming soon...</p>
     </div>
   </div>
@@ -339,7 +328,6 @@
   <!-- History Page -->
   <div id="history" class="page">
     <div class="card">
-      <button class="back-btn" onclick="showPage('dashboard')">← Back</button>
       <h1>📜 History</h1>
       <p style="text-align:center; color:#888;">History coming soon...</p>
     </div>
@@ -348,7 +336,6 @@
   <!-- Categories Page -->
   <div id="categories" class="page">
     <div class="card">
-      <button class="back-btn" onclick="showPage('dashboard')">← Back</button>
       <h1>📁 Categories</h1>
       <p style="text-align:center; color:#888;">Categories coming soon...</p>
     </div>
@@ -357,7 +344,6 @@
   <!-- Settings Page -->
   <div id="settings" class="page">
     <div class="card">
-      <button class="back-btn" onclick="showPage('dashboard')">← Back</button>
       <h1>⚙️ Settings</h1>
       <p style="text-align:center; color:#888;">Settings coming soon...</p>
     </div>
@@ -366,7 +352,6 @@
   <!-- About Page -->
   <div id="about" class="page">
     <div class="card">
-      <button class="back-btn" onclick="showPage('dashboard')">← Back</button>
       <h1>ℹ️ About</h1>
       <p style="text-align:center;">DP Stock Inventory System</p>
       <p style="text-align:center; font-size:12px; color:#888;">Version 2.0</p>
@@ -385,6 +370,7 @@
 
   function setStatus(msg, type) {
     var status = document.getElementById('status');
+    if (!status) return;
     status.textContent = msg;
     status.className = type || '';
   }
@@ -409,6 +395,11 @@
 
   function updateDashboard() {
     document.getElementById('totalItems').textContent = allItems.length;
+    var lowCount = 0;
+    for (var i = 0; i < allItems.length; i++) {
+      if (allItems[i].isLow) lowCount++;
+    }
+    document.getElementById('lowStock').textContent = lowCount;
   }
 
   function loadItems() {
@@ -423,7 +414,9 @@
         setStatus('✅ Items ' + items.length + ' ක් load වුනා', 'success');
         var t = new Date().toLocaleTimeString();
         document.getElementById('autoInfo').textContent = '🔄 Auto-refresh: ON (30s) — Last: ' + t;
-        updateDashboard();
+        if (document.getElementById('dashboard').classList.contains('active')) {
+          updateDashboard();
+        }
         refreshing = false;
       })
       .catch(function(err) {
@@ -434,6 +427,7 @@
 
   function renderList(items) {
     var list = document.getElementById('itemList');
+    if (!list) return;
     list.innerHTML = '';
     if (items.length === 0) {
       list.innerHTML = '<div class="item-row">No items found</div>';
