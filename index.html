@@ -21,7 +21,7 @@
     }
     .header {
       background: white;
-      padding: 15px 20px;
+      padding: 12px 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -40,9 +40,17 @@
       border-radius: 8px;
     }
     .header-title {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: bold;
       color: #333;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-logo {
+      height: 32px;
+      width: auto;
+      border-radius: 5px;
     }
     .header-user {
       font-size: 24px;
@@ -258,7 +266,10 @@
 <!-- Header -->
 <div class="header">
   <button class="menu-btn" onclick="openMenu()">☰</button>
-  <div class="header-title">📦 DP Stock</div>
+  <div class="header-title">
+    <img src="https://i.imgur.com/9Dyz0Ov.png" class="header-logo" alt="DP">
+    <span>DP Stock</span>
+  </div>
   <div class="header-user">👤</div>
 </div>
 
