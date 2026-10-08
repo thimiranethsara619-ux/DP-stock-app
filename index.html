@@ -30,13 +30,8 @@
       position: sticky;
       top: 0;
       z-index: 2000;
-      animation: slideDown 0.3s;
     }
     .update-banner:hover { background: #1976D2; }
-    @keyframes slideDown {
-      from { transform: translateY(-100%); }
-      to { transform: translateY(0); }
-    }
     .header {
       background: white;
       padding: 12px 20px;
@@ -333,7 +328,7 @@
 
       <div id="status"></div>
       <div class="auto-info" id="autoInfo">🔄 Auto-refresh: ON (30s)</div>
-      <div class="version-info" id="versionInfo">v2.2</div>
+      <div class="version-info" id="versionInfo">v2.3</div>
     </div>
   </div>
 
@@ -392,7 +387,7 @@
     <div class="card">
       <h1>ℹ️ About</h1>
       <p style="text-align:center;">DP Stock Inventory System</p>
-      <p style="text-align:center; font-size:12px; color:#888;">Version 2.2</p>
+      <p style="text-align:center; font-size:12px; color:#888;">Version 2.3</p>
     </div>
   </div>
 
@@ -445,9 +440,18 @@
     if (refreshing) return;
     refreshing = true;
     setStatus('🔄 Loading...', 'loading');
+
     fetch(SCRIPT_URL + '?action=getAllItems&t=' + Date.now())
-      .then(function(r) { return r.json(); })
-      .then(function(items) {
+      .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.text();
+      })
+      .then(function(text) {
+        // ⚠️ JSON parse safe කරන්න
+        if (text.trim().charAt(0) !== '[') {
+          throw new Error('Invalid response (not JSON)');
+        }
+        var items = JSON.parse(text);
         allItems = items;
         renderList(items);
         setStatus('✅ Items ' + items.length + ' ක් load වුනා', 'success');
@@ -459,7 +463,7 @@
         refreshing = false;
       })
       .catch(function(err) {
-        setStatus('Error: ' + err, 'error');
+        setStatus('Error loading items: ' + err.message, 'error');
         refreshing = false;
       });
   }
@@ -507,22 +511,32 @@
     if ((action === 'add' || action === 'remove') && qty <= 0) {
       setStatus('ප්‍රමාණය ඇතුළත් කරන්න.', 'error'); return;
     }
+
     setStatus('⏳ හොයනවා...', 'loading');
-    fetch(SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify({ item: selectedItem, quantity: qty, action: action })
-    })
-    .then(function(r) { return r.text(); })
-    .then(function(response) {
-      setStatus(response, response.indexOf('හරි') !== -1 ? 'success' : 'error');
-    })
-    .catch(function(err) {
-      setStatus('Error: ' + err, 'error');
-    });
+
+    // ⚠️ GET request use කරන්න POST වෙනුවට
+    // Apps Script POST requests cache වෙන නිසා, GET use කරමු
+    var url = SCRIPT_URL + '?action=' + action + 
+              '&item=' + encodeURIComponent(selectedItem) + 
+              '&quantity=' + qty + 
+              '&t=' + Date.now();
+
+    fetch(url)
+      .then(function(r) { return r.text(); })
+      .then(function(response) {
+        // Response එක JSON නම්, error
+        if (response.trim().charAt(0) === '<') {
+          throw new Error('Server returned HTML instead of text');
+        }
+        setStatus(response, response.indexOf('හරි') !== -1 ? 'success' : 'error');
+      })
+      .catch(function(err) {
+        setStatus('Error: ' + err.message, 'error');
+      });
   }
 
   // ============================================
-  // AUTO UPDATE SYSTEM - FINAL FIX
+  // AUTO UPDATE SYSTEM
   // ============================================
   
   function applyUpdate() {
