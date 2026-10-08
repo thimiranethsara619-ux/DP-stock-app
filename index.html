@@ -19,6 +19,24 @@
       padding: 0;
       min-height: 100vh;
     }
+    .update-banner {
+      background: #2196F3;
+      color: white;
+      padding: 12px;
+      text-align: center;
+      cursor: pointer;
+      font-weight: bold;
+      display: none;
+      position: sticky;
+      top: 0;
+      z-index: 2000;
+      animation: slideDown 0.3s;
+    }
+    .update-banner:hover { background: #1976D2; }
+    @keyframes slideDown {
+      from { transform: translateY(-100%); }
+      to { transform: translateY(0); }
+    }
     .header {
       background: white;
       padding: 12px 20px;
@@ -168,6 +186,12 @@
       color: #999;
       margin-top: 8px;
     }
+    .version-info {
+      text-align: center;
+      font-size: 10px;
+      color: #bbb;
+      margin-top: 5px;
+    }
     .sidebar {
       position: fixed;
       top: 0;
@@ -245,6 +269,11 @@
 </head>
 <body>
 
+<!-- Update Banner -->
+<div class="update-banner" id="updateBanner" onclick="applyUpdate()">
+  🔄 අලුත් version එකක් තියෙනවා! Update කරන්න tap කරන්න
+</div>
+
 <!-- Sidebar -->
 <div class="overlay" id="overlay" onclick="closeMenu()"></div>
 <div class="sidebar" id="sidebar">
@@ -304,6 +333,7 @@
 
       <div id="status"></div>
       <div class="auto-info" id="autoInfo">🔄 Auto-refresh: ON (30s)</div>
+      <div class="version-info" id="versionInfo">v2.1</div>
     </div>
   </div>
 
@@ -321,9 +351,6 @@
           <div class="value" id="lowStock">0</div>
           <div class="label">අඩු තොග</div>
         </div>
-      </div>
-      <div style="text-align:center; margin-top:20px; font-size:13px; color:#888;">
-        ☰ Menu එකෙන් වෙනත් පිටු වලට යන්න
       </div>
     </div>
   </div>
@@ -365,8 +392,7 @@
     <div class="card">
       <h1>ℹ️ About</h1>
       <p style="text-align:center;">DP Stock Inventory System</p>
-      <p style="text-align:center; font-size:12px; color:#888;">Version 2.0</p>
-      <p style="text-align:center; font-size:12px; color:#888;">Design Plastics</p>
+      <p style="text-align:center; font-size:12px; color:#888;">Version 2.1</p>
     </div>
   </div>
 
@@ -378,6 +404,7 @@
   var selectedItem = '';
   var refreshing = false;
   var waitingWorker = null;
+  var registration = null;
 
   function setStatus(msg, type) {
     var status = document.getElementById('status');
@@ -417,7 +444,7 @@
     if (refreshing) return;
     refreshing = true;
     setStatus('🔄 Loading...', 'loading');
-    fetch(SCRIPT_URL + '?action=getAllItems')
+    fetch(SCRIPT_URL + '?action=getAllItems&t=' + Date.now())
       .then(function(r) { return r.json(); })
       .then(function(items) {
         allItems = items;
@@ -493,27 +520,68 @@
     });
   }
 
+  // ============================================
+  // AUTO UPDATE SYSTEM
+  // ============================================
+  
+  function applyUpdate() {
+    if (waitingWorker) {
+      waitingWorker.postMessage({ action: 'skipWaiting' });
+    }
+    window.location.reload(true);
+  }
+
+  function showUpdateBanner() {
+    document.getElementById('updateBanner').style.display = 'block';
+  }
+
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').then(function(reg) {
+    // Register with version parameter to force update check
+    navigator.serviceWorker.register('sw.js?v=' + Date.now()).then(function(reg) {
+      registration = reg;
+      
+      // Check for updates immediately
       reg.update();
+      
+      // Check for updates every 5 minutes
+      setInterval(function() {
+        reg.update();
+      }, 5 * 60 * 1000);
+      
+      // Detect new version
       reg.onupdatefound = function() {
         var installing = reg.installing;
         installing.onstatechange = function() {
-          if (installing.state === 'installed' && navigator.serviceWorker.controller) {
-            waitingWorker = installing;
-            if (confirm('New version available! Update now?')) {
-              if (waitingWorker) waitingWorker.postMessage({ action: 'skipWaiting' });
-              window.location.reload(true);
+          if (installing.state === 'installed') {
+            if (navigator.serviceWorker.controller) {
+              // New version available
+              waitingWorker = installing;
+              showUpdateBanner();
             }
           }
         };
       };
+    });
+    
+    // Reload when new SW takes over
+    var refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function() {
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
     });
   }
 
   window.onload = function() {
     loadItems();
     setInterval(loadItems, 30000);
+    
+    // Check for updates on page load
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration().then(function(reg) {
+        if (reg) reg.update();
+      });
+    }
   };
 </script>
 </body>
