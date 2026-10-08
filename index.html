@@ -11,13 +11,13 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="DP Stock">
   <style>
-    * { box-sizing: border-box; }
-    body {
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
       font-family: 'Segoe UI', Arial, sans-serif;
       background: linear-gradient(135deg, #ff6600 0%, #ff9933 100%);
-      margin: 0;
-      padding: 0;
+      background-attachment: fixed;
       min-height: 100vh;
+      width: 100%;
     }
     .update-banner {
       background: #2196F3;
@@ -41,6 +41,7 @@
       position: sticky;
       top: 0;
       z-index: 100;
+      width: 100%;
     }
     .menu-btn {
       font-size: 28px;
@@ -69,6 +70,7 @@
       max-width: 600px;
       margin: 20px auto;
       padding: 0 20px;
+      width: 100%;
     }
     .card {
       background: white;
@@ -331,7 +333,11 @@
   <div class="header-title">
     <img src="https://i.imgur.com/9Dyz0Ov.png" class="header-logo" alt="DP">
     <span>DP Stock</span>
-  </div><div class="container">
+  </div>
+  <div class="header-user">👤</div>
+</div>
+
+<div class="container">
 
   <div id="stock" class="page active">
     <div class="card">
@@ -829,5 +835,3 @@
 </script>
 </body>
 </html>
-  <div class="header-user">👤</div>
-</div>
