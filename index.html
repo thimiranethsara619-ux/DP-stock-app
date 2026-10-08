@@ -225,6 +225,12 @@
     }
     .sidebar-item:hover { background: #fff3e0; }
     .sidebar-item.active { background: #fff3e0; color: #ff6600; font-weight: bold; }
+    .sidebar-item.website-link {
+      border-top: 2px solid #ff6600;
+      margin-top: 10px;
+      color: #ff6600;
+      font-weight: bold;
+    }
     .overlay {
       position: fixed;
       top: 0;
@@ -260,6 +266,28 @@
     }
     .page { display: none; }
     .page.active { display: block; }
+    .back-btn {
+      background: #ff6600;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 15px;
+      font-weight: bold;
+    }
+    .website-btn {
+      width: 100%;
+      padding: 20px;
+      background: #ff6600;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 10px 0;
+    }
   </style>
 </head>
 <body>
@@ -284,6 +312,9 @@
     <div class="sidebar-item" onclick="showPage('categories')">📁 Categories</div>
     <div class="sidebar-item" onclick="showPage('settings')">⚙️ Settings</div>
     <div class="sidebar-item" onclick="showPage('about')">ℹ️ About</div>
+    <div class="sidebar-item website-link" onclick="showPage('website')">
+      🌐 Our Website
+    </div>
   </div>
 </div>
 
@@ -328,7 +359,7 @@
 
       <div id="status"></div>
       <div class="auto-info" id="autoInfo">🔄 Auto-refresh: ON (30s)</div>
-      <div class="version-info" id="versionInfo">v2.3</div>
+      <div class="version-info" id="versionInfo">v2.4</div>
     </div>
   </div>
 
@@ -382,12 +413,27 @@
     </div>
   </div>
 
+  <!-- Website Page -->
+  <div id="website" class="page">
+    <div class="card">
+      <button class="back-btn" onclick="showPage('stock')">← Back</button>
+      <h1>🌐 Design Plastics Website</h1>
+      <img src="https://i.imgur.com/9Dyz0Ov.png" class="logo-icon" alt="Design Plastics">
+      <p style="text-align:center; color:#888; margin: 20px 0;">
+        ඔබේ website එක බැලීමට පහත බොත්තම click කරන්න.
+      </p>
+      <button class="website-btn" onclick="window.open('https://www.designplastics.lk/', '_blank')">
+        🌐 Open Website
+      </button>
+    </div>
+  </div>
+
   <!-- About Page -->
   <div id="about" class="page">
     <div class="card">
       <h1>ℹ️ About</h1>
       <p style="text-align:center;">DP Stock Inventory System</p>
-      <p style="text-align:center; font-size:12px; color:#888;">Version 2.3</p>
+      <p style="text-align:center; font-size:12px; color:#888;">Version 2.4</p>
     </div>
   </div>
 
@@ -447,7 +493,6 @@
         return r.text();
       })
       .then(function(text) {
-        // ⚠️ JSON parse safe කරන්න
         if (text.trim().charAt(0) !== '[') {
           throw new Error('Invalid response (not JSON)');
         }
@@ -514,19 +559,26 @@
 
     setStatus('⏳ හොයනවා...', 'loading');
 
-    // ⚠️ GET request use කරන්න POST වෙනුවට
-    // Apps Script POST requests cache වෙන නිසා, GET use කරමු
-    var url = SCRIPT_URL + '?action=' + action + 
-              '&item=' + encodeURIComponent(selectedItem) + 
+    var encodedItem = encodeURIComponent(selectedItem);
+    var encodedAction = encodeURIComponent(action);
+    
+    var url = SCRIPT_URL + 
+              '?action=' + encodedAction + 
+              '&item=' + encodedItem + 
               '&quantity=' + qty + 
               '&t=' + Date.now();
 
-    fetch(url)
-      .then(function(r) { return r.text(); })
+    fetch(url, {
+      method: 'GET',
+      cache: 'no-store'
+    })
+      .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.text();
+      })
       .then(function(response) {
-        // Response එක JSON නම්, error
         if (response.trim().charAt(0) === '<') {
-          throw new Error('Server returned HTML instead of text');
+          throw new Error('Server returned HTML');
         }
         setStatus(response, response.indexOf('හරි') !== -1 ? 'success' : 'error');
       })
