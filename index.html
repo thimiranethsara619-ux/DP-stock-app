@@ -11,36 +11,65 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="DP Stock">
   <style>
+    * { box-sizing: border-box; }
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', Arial, sans-serif;
       background: linear-gradient(135deg, #ff6600 0%, #ff9933 100%);
       margin: 0;
-      padding: 20px;
+      padding: 0;
       min-height: 100vh;
+    }
+    .header {
+      background: white;
+      padding: 15px 20px;
       display: flex;
-      justify-content: center;
       align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .menu-btn {
+      font-size: 28px;
+      cursor: pointer;
+      color: #ff6600;
+      background: none;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 8px;
+    }
+    .header-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+    }
+    .header-user {
+      font-size: 24px;
     }
     .container {
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 0 20px;
+    }
+    .card {
       background: white;
       border-radius: 20px;
-      padding: 30px;
-      max-width: 500px;
-      width: 100%;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-    }
-    h1 {
-      text-align: center;
-      color: #333;
-      font-size: 22px;
-      margin-bottom: 20px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
     }
     .logo-icon {
       display: block;
       margin: 0 auto 15px auto;
-      width: 180px;
+      width: 150px;
       height: auto;
       border-radius: 10px;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+      font-size: 20px;
+      margin: 0 0 20px 0;
     }
     .input-group { margin: 15px 0; }
     .input-group label {
@@ -56,17 +85,15 @@
       border: 2px solid #ddd;
       border-radius: 8px;
       font-size: 14px;
-      box-sizing: border-box;
       margin-bottom: 5px;
     }
     .item-list {
       width: 100%;
-      height: 250px;
+      height: 200px;
       overflow-y: auto;
       border: 2px solid #ddd;
       border-radius: 10px;
       padding: 5px;
-      box-sizing: border-box;
       background: white;
     }
     .item-row {
@@ -80,224 +107,409 @@
     .item-row.selected { background: #ff6600; color: white; }
     .input-group input[type="number"] {
       width: 100%;
-      padding: 14px;
+      padding: 12px;
       border: 2px solid #ddd;
       border-radius: 10px;
       font-size: 16px;
-      box-sizing: border-box;
+    }
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin: 12px 0;
     }
     .btn {
-      width: 100%;
-      padding: 18px;
-      margin: 8px 0;
+      flex: 1;
+      padding: 14px 5px;
       border: none;
-      border-radius: 12px;
-      font-size: 16px;
+      border-radius: 10px;
+      font-size: 14px;
       font-weight: bold;
       cursor: pointer;
+      white-space: nowrap;
     }
+    .btn:active { transform: scale(0.97); }
     .btn-add { background: #4CAF50; color: white; }
     .btn-remove { background: #f44336; color: white; }
     .btn-query { background: #2196F3; color: white; }
-    .btn-refresh { background: #9C27B0; color: white; }
+    .btn-refresh {
+      width: 100%;
+      padding: 12px;
+      background: #9C27B0;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 8px 0;
+    }
     #status {
       text-align: center;
       margin-top: 15px;
-      padding: 15px;
+      padding: 12px;
       border-radius: 10px;
-      font-size: 15px;
+      font-size: 14px;
       min-height: 20px;
     }
     .success { background: #d4edda; color: #155724; }
     .error { background: #f8d7da; color: #721c24; }
     .loading { background: #fff3cd; color: #856404; }
-    .auto-refresh-info {
+    .auto-info {
       text-align: center;
-      font-size: 12px;
+      font-size: 11px;
       color: #999;
-      margin-top: 10px;
+      margin-top: 8px;
     }
-    .update-banner {
-      background: #2196F3;
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: -280px;
+      width: 280px;
+      height: 100%;
+      background: white;
+      box-shadow: 2px 0 15px rgba(0,0,0,0.2);
+      transition: 0.3s;
+      z-index: 1000;
+      overflow-y: auto;
+    }
+    .sidebar.open { left: 0; }
+    .sidebar-header {
+      background: #ff6600;
       color: white;
-      padding: 10px;
-      border-radius: 8px;
-      text-align: center;
-      margin-bottom: 15px;
-      cursor: pointer;
-      display: none;
+      padding: 20px;
+      font-size: 18px;
+      font-weight: bold;
     }
-    .update-banner:hover { background: #1976D2; }
+    .sidebar-header .logo {
+      width: 100px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+    }
+    .sidebar-menu { padding: 10px 0; }
+    .sidebar-item {
+      padding: 15px 20px;
+      cursor: pointer;
+      font-size: 15px;
+      color: #333;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .sidebar-item:hover { background: #fff3e0; }
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      z-index: 999;
+    }
+    .overlay.show { display: block; }
+    .cards-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 15px;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, #ff6600, #ff9933);
+      color: white;
+      padding: 15px;
+      border-radius: 12px;
+      text-align: center;
+    }
+    .stat-card .value {
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .stat-card .label {
+      font-size: 12px;
+      opacity: 0.9;
+      margin-top: 5px;
+    }
+    .page { display: none; }
+    .page.active { display: block; }
+    .back-btn {
+      background: #ff6600;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 15px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="update-banner" id="updateBanner" onclick="applyUpdate()">
-      🔄 New version available! Tap to update
-    </div>
-    <img src="https://i.imgur.com/9Dyz0Ov.png" class="logo-icon" alt="Design Plastics">
-    <h1>DP Stock Inventory System</h1>
-    <div class="input-group">
-      <label>Item Select කරන්න:</label>
-      <input type="text" id="searchBox" class="search-box" placeholder="🔍 Type කරලා search කරන්න..." oninput="filterItems()">
-      <div id="itemList" class="item-list">
-        <div class="item-row">Loading...</div>
+
+<!-- Sidebar -->
+<div class="overlay" id="overlay" onclick="closeMenu()"></div>
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <img src="https://i.imgur.com/9Dyz0Ov.png" class="logo" alt="DP">
+    <div>DP Stock</div>
+  </div>
+  <div class="sidebar-menu">
+    <div class="sidebar-item" onclick="showPage('dashboard')">🏠 Dashboard</div>
+    <div class="sidebar-item" onclick="showPage('stock')">📦 Stock</div>
+    <div class="sidebar-item" onclick="showPage('reports')">📊 Reports</div>
+    <div class="sidebar-item" onclick="showPage('history')">📜 History</div>
+    <div class="sidebar-item" onclick="showPage('categories')">📁 Categories</div>
+    <div class="sidebar-item" onclick="showPage('settings')">⚙️ Settings</div>
+    <div class="sidebar-item" onclick="showPage('about')">ℹ️ About</div>
+  </div>
+</div>
+
+<!-- Header -->
+<div class="header">
+  <button class="menu-btn" onclick="openMenu()">☰</button>
+  <div class="header-title">📦 DP Stock</div>
+  <div class="header-user">👤</div>
+</div>
+
+<!-- Container -->
+<div class="container">
+
+  <!-- Dashboard Page -->
+  <div id="dashboard" class="page active">
+    <div class="card">
+      <img src="https://i.imgur.com/9Dyz0Ov.png" class="logo-icon" alt="Design Plastics">
+      <h1>DP Stock Inventory System</h1>
+      <div class="cards-grid">
+        <div class="stat-card">
+          <div class="value" id="totalItems">0</div>
+          <div class="label">මුළු භාණ්ඩ</div>
+        </div>
+        <div class="stat-card">
+          <div class="value" id="lowStock">0</div>
+          <div class="label">අඩු තොග</div>
+        </div>
+      </div>
+      <div style="text-align:center; margin-top:20px; font-size:13px; color:#888;">
+        ☰ Menu එකෙන් වෙනත් පිටු වලට යන්න
       </div>
     </div>
-    <div class="input-group">
-      <label>Quantity:</label>
-      <input type="number" id="qtyInput" placeholder="උදා: 10" value="0">
-    </div>
-    <button class="btn btn-add" onclick="doAction('add')">➕ Stock එකට Add කරන්න</button>
-    <button class="btn btn-remove" onclick="doAction('remove')">➖ Stock එකෙන් අයින් කරන්න</button>
-    <button class="btn btn-query" onclick="doAction('query')">🔍 Stock එකේ කීයද අහන්න</button>
-    <button class="btn btn-refresh" onclick="loadItems()">🔄 Refresh List</button>
-    <div id="status"></div>
-    <div class="auto-refresh-info" id="autoRefreshInfo">Auto-refresh: ON (30s)</div>
   </div>
-  <script>
-    var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbza1_O4AdYHA24D-yiSf59bgPbNRDXEq6gSlpMbiXq2PljejLZKcr0VvdW03FX1AhSm/exec';
-    var allItems = [];
-    var selectedItem = '';
-    var autoRefreshInterval;
-    var waitingWorker = null;
-    var refreshing = false;
 
-    function setStatus(msg, type) {
-      var status = document.getElementById('status');
-      status.textContent = msg;
-      status.className = type || '';
-    }
+  <!-- Stock Page -->
+  <div id="stock" class="page">
+    <div class="card">
+      <button class="back-btn" onclick="showPage('dashboard')">← Back</button>
+      <h1>Stock Management</h1>
 
-    function loadItems() {
-      if (refreshing) return;
-      refreshing = true;
-      setStatus('🔄 Loading items...', 'loading');
+      <div class="input-group">
+        <label>භාණ්ඩය තෝරන්න:</label>
+        <input type="text" id="searchBox" class="search-box" placeholder="🔍 Type කරලා search කරන්න..." oninput="filterItems()">
+        <div id="itemList" class="item-list">
+          <div class="item-row">Loading...</div>
+        </div>
+      </div>
 
-      fetch(SCRIPT_URL + '?action=getAllItems')
-        .then(function(r) { return r.json(); })
-        .then(function(items) {
-          allItems = items;
-          renderList(items);
-          setStatus('✅ Items ' + items.length + ' ක් load වුනා', 'success');
-          updateAutoRefreshTime();
-          refreshing = false;
-        })
-        .catch(function(err) {
-          setStatus('Error: ' + err, 'error');
-          refreshing = false;
-        });
-    }
+      <div class="input-group">
+        <label>ප්‍රමාණය:</label>
+        <input type="number" id="qtyInput" placeholder="උදා: 10" value="0">
+      </div>
 
-    function renderList(items) {
-      var list = document.getElementById('itemList');
-      list.innerHTML = '';
-      if (items.length === 0) {
-        list.innerHTML = '<div class="item-row">No items found</div>';
-        return;
-      }
-      for (var i = 0; i < items.length; i++) {
-        var row = document.createElement('div');
-        row.className = 'item-row';
-        row.textContent = items[i].code + ' — ' + items[i].description;
-        row.setAttribute('data-desc', items[i].description);
-        if (items[i].description === selectedItem) row.className += ' selected';
-        row.onclick = function() { selectItem(this); };
-        list.appendChild(row);
-      }
-    }
+      <div class="btn-row">
+        <button class="btn btn-add" onclick="doAction('add')">➕ එකතු</button>
+        <button class="btn btn-remove" onclick="doAction('remove')">➖ අයින්</button>
+        <button class="btn btn-query" onclick="doAction('query')">🔍 බලන්න</button>
+      </div>
 
-    function selectItem(element) {
-      var rows = document.querySelectorAll('.item-row');
-      for (var i = 0; i < rows.length; i++) rows[i].classList.remove('selected');
-      element.classList.add('selected');
-      selectedItem = element.getAttribute('data-desc');
-      setStatus('✅ ' + selectedItem, 'success');
-    }
+      <button class="btn-refresh" onclick="loadItems()">🔄 නැවත ලබා ගන්න</button>
 
-    function filterItems() {
-      var search = document.getElementById('searchBox').value.toLowerCase().trim();
-      if (search === '') { renderList(allItems); return; }
-      var filtered = allItems.filter(function(i) {
-        return i.description.toLowerCase().indexOf(search) !== -1 ||
-               i.code.toLowerCase().indexOf(search) !== -1;
-      });
-      renderList(filtered);
-    }
+      <div id="status"></div>
+      <div class="auto-info" id="autoInfo">🔄 Auto-refresh: ON (30s)</div>
+    </div>
+  </div>
 
-    function doAction(action) {
-      var qty = parseInt(document.getElementById('qtyInput').value) || 0;
-      if (!selectedItem) { setStatus('Item එකක් select කරන්න.', 'error'); return; }
-      if ((action === 'add' || action === 'remove') && qty <= 0) {
-        setStatus('Quantity එක type කරන්න.', 'error'); return;
-      }
-      setStatus('⏳ හොයනවා...', 'loading');
-      fetch(SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify({ item: selectedItem, quantity: qty, action: action })
-      })
-      .then(function(r) { return r.text(); })
-      .then(function(response) {
-        setStatus(response, response.indexOf('හරි') !== -1 ? 'success' : 'error');
+  <!-- Reports Page -->
+  <div id="reports" class="page">
+    <div class="card">
+      <button class="back-btn" onclick="showPage('dashboard')">← Back</button>
+      <h1>📊 Reports</h1>
+      <p style="text-align:center; color:#888;">Reports coming soon...</p>
+    </div>
+  </div>
+
+  <!-- History Page -->
+  <div id="history" class="page">
+    <div class="card">
+      <button class="back-btn" onclick="showPage('dashboard')">← Back</button>
+      <h1>📜 History</h1>
+      <p style="text-align:center; color:#888;">History coming soon...</p>
+    </div>
+  </div>
+
+  <!-- Categories Page -->
+  <div id="categories" class="page">
+    <div class="card">
+      <button class="back-btn" onclick="showPage('dashboard')">← Back</button>
+      <h1>📁 Categories</h1>
+      <p style="text-align:center; color:#888;">Categories coming soon...</p>
+    </div>
+  </div>
+
+  <!-- Settings Page -->
+  <div id="settings" class="page">
+    <div class="card">
+      <button class="back-btn" onclick="showPage('dashboard')">← Back</button>
+      <h1>⚙️ Settings</h1>
+      <p style="text-align:center; color:#888;">Settings coming soon...</p>
+    </div>
+  </div>
+
+  <!-- About Page -->
+  <div id="about" class="page">
+    <div class="card">
+      <button class="back-btn" onclick="showPage('dashboard')">← Back</button>
+      <h1>ℹ️ About</h1>
+      <p style="text-align:center;">DP Stock Inventory System</p>
+      <p style="text-align:center; font-size:12px; color:#888;">Version 2.0</p>
+      <p style="text-align:center; font-size:12px; color:#888;">Design Plastics</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbza1_O4AdYHA24D-yiSf59bgPbNRDXEq6gSlpMbiXq2PljejLZKcr0VvdW03FX1AhSm/exec';
+  var allItems = [];
+  var selectedItem = '';
+  var refreshing = false;
+  var waitingWorker = null;
+
+  function setStatus(msg, type) {
+    var status = document.getElementById('status');
+    status.textContent = msg;
+    status.className = type || '';
+  }
+
+  function openMenu() {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('overlay').classList.add('show');
+  }
+
+  function closeMenu() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('show');
+  }
+
+  function showPage(pageId) {
+    var pages = document.querySelectorAll('.page');
+    for (var i = 0; i < pages.length; i++) pages[i].classList.remove('active');
+    document.getElementById(pageId).classList.add('active');
+    closeMenu();
+    if (pageId === 'dashboard') updateDashboard();
+  }
+
+  function updateDashboard() {
+    document.getElementById('totalItems').textContent = allItems.length;
+  }
+
+  function loadItems() {
+    if (refreshing) return;
+    refreshing = true;
+    setStatus('🔄 Loading...', 'loading');
+    fetch(SCRIPT_URL + '?action=getAllItems')
+      .then(function(r) { return r.json(); })
+      .then(function(items) {
+        allItems = items;
+        renderList(items);
+        setStatus('✅ Items ' + items.length + ' ක් load වුනා', 'success');
+        var t = new Date().toLocaleTimeString();
+        document.getElementById('autoInfo').textContent = '🔄 Auto-refresh: ON (30s) — Last: ' + t;
+        updateDashboard();
+        refreshing = false;
       })
       .catch(function(err) {
         setStatus('Error: ' + err, 'error');
+        refreshing = false;
       });
+  }
+
+  function renderList(items) {
+    var list = document.getElementById('itemList');
+    list.innerHTML = '';
+    if (items.length === 0) {
+      list.innerHTML = '<div class="item-row">No items found</div>';
+      return;
     }
-
-    function updateAutoRefreshTime() {
-      var info = document.getElementById('autoRefreshInfo');
-      var time = new Date().toLocaleTimeString();
-      info.textContent = '🔄 Auto-refresh: ON (30s) — Last: ' + time;
+    for (var i = 0; i < items.length; i++) {
+      var row = document.createElement('div');
+      row.className = 'item-row';
+      row.textContent = items[i].code + ' — ' + items[i].description;
+      row.setAttribute('data-desc', items[i].description);
+      if (items[i].description === selectedItem) row.className += ' selected';
+      row.onclick = function() { selectItem(this); };
+      list.appendChild(row);
     }
+  }
 
-    function applyUpdate() {
-      if (waitingWorker) {
-        waitingWorker.postMessage({ action: 'skipWaiting' });
-      }
-      window.location.reload(true);
+  function selectItem(element) {
+    var rows = document.querySelectorAll('.item-row');
+    for (var i = 0; i < rows.length; i++) rows[i].classList.remove('selected');
+    element.classList.add('selected');
+    selectedItem = element.getAttribute('data-desc');
+    setStatus('✅ ' + selectedItem, 'success');
+  }
+
+  function filterItems() {
+    var search = document.getElementById('searchBox').value.toLowerCase().trim();
+    if (search === '') { renderList(allItems); return; }
+    var filtered = allItems.filter(function(i) {
+      return i.description.toLowerCase().indexOf(search) !== -1 ||
+             i.code.toLowerCase().indexOf(search) !== -1;
+    });
+    renderList(filtered);
+  }
+
+  function doAction(action) {
+    var qty = parseInt(document.getElementById('qtyInput').value) || 0;
+    if (!selectedItem) { setStatus('භාණ්ඩයක් තෝරන්න.', 'error'); return; }
+    if ((action === 'add' || action === 'remove') && qty <= 0) {
+      setStatus('ප්‍රමාණය ඇතුළත් කරන්න.', 'error'); return;
     }
+    setStatus('⏳ හොයනවා...', 'loading');
+    fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ item: selectedItem, quantity: qty, action: action })
+    })
+    .then(function(r) { return r.text(); })
+    .then(function(response) {
+      setStatus(response, response.indexOf('හරි') !== -1 ? 'success' : 'error');
+    })
+    .catch(function(err) {
+      setStatus('Error: ' + err, 'error');
+    });
+  }
 
-    // Service Worker Registration + Auto-Update
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').then(function(reg) {
-        // Check for updates every time
-        reg.update();
-
-        // Detect new version
-        reg.onupdatefound = function() {
-          var installingWorker = reg.installing;
-          installingWorker.onstatechange = function() {
-            if (installingWorker.state === 'installed') {
-              if (navigator.serviceWorker.controller) {
-                // New version available
-                waitingWorker = installingWorker;
-                document.getElementById('updateBanner').style.display = 'block';
-              }
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').then(function(reg) {
+      reg.update();
+      reg.onupdatefound = function() {
+        var installing = reg.installing;
+        installing.onstatechange = function() {
+          if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+            waitingWorker = installing;
+            if (confirm('New version available! Update now?')) {
+              if (waitingWorker) waitingWorker.postMessage({ action: 'skipWaiting' });
+              window.location.reload(true);
             }
-          };
+          }
         };
-      });
+      };
+    });
+  }
 
-      // Reload when new SW takes over
-      navigator.serviceWorker.addEventListener('controllerchange', function() {
-        if (refreshing) return;
-        refreshing = true;
-        window.location.reload();
-      });
-    }
-
-    window.onload = function() { 
-      loadItems();
-      autoRefreshInterval = setInterval(loadItems, 30000);
-
-      // Check for SW update on page load
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistration().then(function(reg) {
-          if (reg) reg.update();
-        });
-      }
-    };
-  </script>
+  window.onload = function() {
+    loadItems();
+    setInterval(loadItems, 30000);
+  };
+</script>
 </body>
 </html>
