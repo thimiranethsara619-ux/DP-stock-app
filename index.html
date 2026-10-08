@@ -31,7 +31,6 @@
       top: 0;
       z-index: 2000;
     }
-    .update-banner:hover { background: #1976D2; }
     .header {
       background: white;
       padding: 12px 20px;
@@ -65,9 +64,7 @@
       width: auto;
       border-radius: 5px;
     }
-    .header-user {
-      font-size: 24px;
-    }
+    .header-user { font-size: 24px; }
     .container {
       max-width: 600px;
       margin: 20px auto;
@@ -133,6 +130,13 @@
       border-radius: 10px;
       font-size: 16px;
     }
+    .input-group input[type="date"] {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      font-size: 16px;
+    }
     .btn-row {
       display: flex;
       gap: 8px;
@@ -164,6 +168,8 @@
       cursor: pointer;
       margin: 8px 0;
     }
+    .btn-excel { background: #217346; color: white; }
+    .btn-pdf { background: #D32F2F; color: white; }
     #status {
       text-align: center;
       margin-top: 15px;
@@ -264,6 +270,8 @@
       opacity: 0.9;
       margin-top: 5px;
     }
+    .stat-in { background: linear-gradient(135deg, #4CAF50, #66BB6A); }
+    .stat-out { background: linear-gradient(135deg, #f44336, #EF5350); }
     .page { display: none; }
     .page.active { display: block; }
     .back-btn {
@@ -307,7 +315,7 @@
   <div class="sidebar-menu">
     <div class="sidebar-item" onclick="showPage('dashboard')">📊 Dashboard</div>
     <div class="sidebar-item active" onclick="showPage('stock')">📦 Stock</div>
-    <div class="sidebar-item" onclick="showPage('reports')">📈 Reports</div>
+    <div class="sidebar-item" onclick="showPage('reports')">📈 Daily Report</div>
     <div class="sidebar-item" onclick="showPage('history')">📜 History</div>
     <div class="sidebar-item" onclick="showPage('categories')">📁 Categories</div>
     <div class="sidebar-item" onclick="showPage('settings')">⚙️ Settings</div>
@@ -326,9 +334,7 @@
     <span>DP Stock</span>
   </div>
   <div class="header-user">👤</div>
-</div>
-
-<!-- Container -->
+</div><!-- Container -->
 <div class="container">
 
   <!-- Stock Page (MAIN - Default) -->
@@ -359,7 +365,7 @@
 
       <div id="status"></div>
       <div class="auto-info" id="autoInfo">🔄 Auto-refresh: ON (30s)</div>
-      <div class="version-info" id="versionInfo">v2.4</div>
+      <div class="version-info" id="versionInfo">v3.0</div>
     </div>
   </div>
 
@@ -381,11 +387,40 @@
     </div>
   </div>
 
-  <!-- Reports Page -->
+  <!-- Daily Report Page -->
   <div id="reports" class="page">
     <div class="card">
-      <h1>📈 Reports</h1>
-      <p style="text-align:center; color:#888;">Reports coming soon...</p>
+      <h1>📈 Daily Report</h1>
+
+      <div class="input-group">
+        <label>දිනය තෝරන්න:</label>
+        <input type="date" id="reportDate" onchange="loadDailyReport()">
+      </div>
+
+      <div class="cards-grid" style="margin: 15px 0;">
+        <div class="stat-card stat-in">
+          <div class="value" id="reportIn">0</div>
+          <div class="label">Stock In</div>
+        </div>
+        <div class="stat-card stat-out">
+          <div class="value" id="reportOut">0</div>
+          <div class="label">Stock Out</div>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>Movements:</label>
+        <div id="reportList" class="item-list" style="height: 300px;">
+          <div class="item-row">දිනයක් තෝරන්න...</div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-excel" onclick="exportExcel()">📥 Excel</button>
+        <button class="btn btn-pdf" onclick="exportPDF()">📄 PDF</button>
+      </div>
+
+      <div class="version-info" id="reportCount">0 movements</div>
     </div>
   </div>
 
@@ -433,7 +468,7 @@
     <div class="card">
       <h1>ℹ️ About</h1>
       <p style="text-align:center;">DP Stock Inventory System</p>
-      <p style="text-align:center; font-size:12px; color:#888;">Version 2.4</p>
+      <p style="text-align:center; font-size:12px; color:#888;">Version 3.0</p>
     </div>
   </div>
 
@@ -447,6 +482,7 @@
   var waitingWorker = null;
   var registration = null;
   var updateReloading = false;
+  var currentReport = null;
 
   function setStatus(msg, type) {
     var status = document.getElementById('status');
@@ -470,7 +506,14 @@
     for (var i = 0; i < pages.length; i++) pages[i].classList.remove('active');
     document.getElementById(pageId).classList.add('active');
     closeMenu();
+    
     if (pageId === 'dashboard') updateDashboard();
+    
+    if (pageId === 'reports') {
+      var today = new Date().toISOString().split('T')[0];
+      document.getElementById('reportDate').value = today;
+      loadDailyReport();
+    }
   }
 
   function updateDashboard() {
@@ -494,7 +537,7 @@
       })
       .then(function(text) {
         if (text.trim().charAt(0) !== '[') {
-          throw new Error('Invalid response (not JSON)');
+          throw new Error('Invalid response');
         }
         var items = JSON.parse(text);
         allItems = items;
@@ -568,10 +611,7 @@
               '&quantity=' + qty + 
               '&t=' + Date.now();
 
-    fetch(url, {
-      method: 'GET',
-      cache: 'no-store'
-    })
+    fetch(url, { method: 'GET', cache: 'no-store' })
       .then(function(r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.text();
@@ -587,16 +627,115 @@
       });
   }
 
-  // ============================================
-  // AUTO UPDATE SYSTEM
-  // ============================================
-  
+  function loadDailyReport() {
+    var dateInput = document.getElementById('reportDate').value;
+    if (!dateInput) return;
+    
+    document.getElementById('reportList').innerHTML = '<div class="item-row">Loading...</div>';
+    
+    fetch(SCRIPT_URL + '?action=getDailyReport&date=' + dateInput + '&t=' + Date.now())
+      .then(function(r) { return r.json(); })
+      .then(function(report) {
+        currentReport = report;
+        document.getElementById('reportIn').textContent = report.totalIn;
+        document.getElementById('reportOut').textContent = report.totalOut;
+        document.getElementById('reportCount').textContent = report.count + ' movements';
+        
+        var list = document.getElementById('reportList');
+        list.innerHTML = '';
+        
+        if (report.movements.length === 0) {
+          list.innerHTML = '<div class="item-row">මේ දවසේ movements නැහැ.</div>';
+          return;
+        }
+        
+        for (var i = 0; i < report.movements.length; i++) {
+          var m = report.movements[i];
+          var row = document.createElement('div');
+          row.className = 'item-row';
+          var typeIcon = m.in > 0 ? '🟢 IN' : '🔴 OUT';
+          var qty = m.in > 0 ? m.in : m.out;
+          row.innerHTML = '<strong>' + typeIcon + '</strong> — ' + 
+                         m.code + ' — ' + m.description + 
+                         ' — <strong>' + qty + '</strong>';
+          list.appendChild(row);
+        }
+      })
+      .catch(function(err) {
+        document.getElementById('reportList').innerHTML = 
+          '<div class="item-row">Error: ' + err.message + '</div>';
+      });
+  }
+
+  function exportExcel() {
+    var dateInput = document.getElementById('reportDate').value;
+    if (!dateInput) {
+      alert('දිනයක් තෝරන්න.');
+      return;
+    }
+    window.open(SCRIPT_URL + '?action=exportCSV&date=' + dateInput, '_blank');
+  }
+
+  function exportPDF() {
+    if (!currentReport) {
+      alert('දිනයක් තෝරන්න.');
+      return;
+    }
+    
+    var printWindow = window.open('', '_blank');
+    var html = '<html><head><title>Daily Report - ' + currentReport.date + '</title>';
+    html += '<style>';
+    html += 'body { font-family: Arial; padding: 20px; }';
+    html += 'h1 { color: #ff6600; }';
+    html += 'table { width: 100%; border-collapse: collapse; margin-top: 20px; }';
+    html += 'th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }';
+    html += 'th { background: #ff6600; color: white; }';
+    html += '.summary { display: flex; gap: 20px; margin: 20px 0; }';
+    html += '.box { padding: 20px; border-radius: 10px; color: white; flex: 1; text-align: center; }';
+    html += '.in { background: #4CAF50; }';
+    html += '.out { background: #f44336; }';
+    html += '.box .value { font-size: 32px; font-weight: bold; }';
+    html += '</style></head><body>';
+    
+    html += '<h1>📊 Daily Stock Report</h1>';
+    html += '<p><strong>Date:</strong> ' + currentReport.date + '</p>';
+    
+    html += '<div class="summary">';
+    html += '<div class="box in"><div class="value">' + currentReport.totalIn + '</div>Stock In</div>';
+    html += '<div class="box out"><div class="value">' + currentReport.totalOut + '</div>Stock Out</div>';
+    html += '</div>';
+    
+    html += '<table>';
+    html += '<tr><th>Code</th><th>Description</th><th>Unit</th><th>In</th><th>Out</th><th>Balance</th></tr>';
+    
+    for (var i = 0; i < currentReport.movements.length; i++) {
+      var m = currentReport.movements[i];
+      html += '<tr>';
+      html += '<td>' + m.code + '</td>';
+      html += '<td>' + m.description + '</td>';
+      html += '<td>' + m.unit + '</td>';
+      html += '<td>' + (m.in || '') + '</td>';
+      html += '<td>' + (m.out || '') + '</td>';
+      html += '<td>' + m.balance + '</td>';
+      html += '</tr>';
+    }
+    
+    html += '</table>';
+    html += '<p style="margin-top: 20px; font-size: 11px; color: #888;">Generated by DP Stock Inventory System</p>';
+    html += '</body></html>';
+    
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    
+    setTimeout(function() {
+      printWindow.print();
+    }, 500);
+  }
+
   function applyUpdate() {
     document.getElementById('updateBanner').style.display = 'none';
-    
-    if (waitingWorker) {
-      waitingWorker.postMessage({ action: 'skipWaiting' });
-    }
+    if (waitingWorker) waitingWorker.postMessage({ action: 'skipWaiting' });
     
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function(regs) {
@@ -625,10 +764,7 @@
     navigator.serviceWorker.register('sw.js').then(function(reg) {
       registration = reg;
       reg.update();
-      
-      setInterval(function() {
-        reg.update();
-      }, 60 * 1000);
+      setInterval(function() { reg.update(); }, 60 * 1000);
       
       reg.onupdatefound = function() {
         var installing = reg.installing;
