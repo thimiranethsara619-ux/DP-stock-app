@@ -1,4 +1,4 @@
-var CACHE_NAME = 'dp-stock-v4-1';
+var CACHE_NAME = 'dp-stock-v5-1';
 
 self.addEventListener('install', function(e) {
   self.skipWaiting();
@@ -26,28 +26,36 @@ self.addEventListener('activate', function(e) {
 });
 
 self.addEventListener('fetch', function(e) {
-  // ⚠️ POST requests cache කරන්න එපා
-  // ⚠️ Apps Script requests cache කරන්න එපා
-  // ⚠️ Script.google.com requests cache කරන්න එපා
-  
   var url = e.request.url;
   
-  // POST requests — cache bypass
-  if (e.request.method !== 'GET') {
-    return; // fetch default behavior
-  }
-  
-  // Apps Script requests — cache bypass
+  // ============================================
+  // ⚠️ Apps Script requests — cache කරන්න එපා
+  // ============================================
   if (url.indexOf('script.google.com') !== -1) {
+    // Cache bypass — network එකෙන් කෙලින්ම ගන්න
+    e.respondWith(
+      fetch(e.request, { cache: 'no-store' })
+    );
     return;
   }
   
-  // Google requests — cache bypass
-  if (url.indexOf('google.com') !== -1) {
+  // ============================================
+  // ⚠️ Google requests — cache කරන්න එපා
+  // ============================================
+  if (url.indexOf('google.com') !== -1 || url.indexOf('googleapis.com') !== -1) {
     return;
   }
   
-  // අනිත් ඔක්කොම — cache
+  // ============================================
+  // ⚠️ POST requests — cache කරන්න එපා
+  // ============================================
+  if (e.request.method !== 'GET') {
+    return;
+  }
+  
+  // ============================================
+  // අනිත් ඔක්කොම (HTML, CSS, JS, Images) — cache
+  // ============================================
   e.respondWith(
     fetch(e.request).then(function(response) {
       // Error responses cache කරන්න එපා
