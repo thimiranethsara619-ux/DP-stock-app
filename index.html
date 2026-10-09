@@ -97,7 +97,7 @@
       margin-bottom: 5px;
       font-weight: bold;
     }
-    .search-box, .text-input, .select-box {
+    .search-box, .text-input {
       width: 100%;
       padding: 10px;
       border: 2px solid #ddd;
@@ -134,7 +134,6 @@
       border-radius: 10px;
       font-size: 16px;
     }
-    /* Searchable dropdown */
     .searchable-wrapper {
       position: relative;
     }
@@ -433,7 +432,7 @@
       <button class="btn-refresh" onclick="loadItems()">🔄 නැවත ලබා ගන්න</button>
       <div id="status"></div>
       <div class="auto-info" id="autoInfo">🔄 Auto-refresh: ON (30s)</div>
-      <div class="version-info" id="versionInfo">v3.3</div>
+      <div class="version-info" id="versionInfo">v3.4</div>
     </div>
   </div>
 
@@ -555,13 +554,9 @@
     <div class="card">
       <h1>ℹ️ About</h1>
       <p style="text-align:center;">DP Stock Inventory System</p>
-      <p style="text-align:center; font-size:12px; color:#888;">Version 3.3</p>
+      <p style="text-align:center; font-size:12px; color:#888;">Version 3.4</p>
     </div>
-  </div>
-
-</div>
-
-<script>
+  </div><script>
   var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbza1_O4AdYHA24D-yiSf59bgPbNRDXEq6gSlpMbiXq2PljejLZKcr0VvdW03FX1AhSm/exec';
   var allItems = [];
   var allCustomers = [];
@@ -621,6 +616,7 @@
       .then(function(r) { return r.json(); })
       .then(function(customers) {
         allCustomers = customers;
+        console.log('Customers loaded: ' + customers.length);
       })
       .catch(function(err) { console.log('Customers error:', err); });
   }
@@ -630,13 +626,11 @@
       .then(function(r) { return r.json(); })
       .then(function(locations) {
         allCities = locations;
+        console.log('Locations loaded: ' + locations.length);
       })
       .catch(function(err) { console.log('Locations error:', err); });
   }
 
-  // ============================================
-  // SEARCHABLE JOB NAME DROPDOWN
-  // ============================================
   function showJobNameList() {
     var list = document.getElementById('jobNameList');
     var input = document.getElementById('jobNameInput');
@@ -675,9 +669,6 @@
     document.getElementById('jobNameList').classList.remove('show');
   }
 
-  // ============================================
-  // SEARCHABLE CITY DROPDOWN
-  // ============================================
   function showCityList() {
     var list = document.getElementById('cityList');
     var input = document.getElementById('cityInput');
@@ -716,7 +707,6 @@
     document.getElementById('cityList').classList.remove('show');
   }
 
-  // Close dropdowns when clicking outside
   document.addEventListener('click', function(e) {
     if (!e.target.closest('#jobNameInput') && !e.target.closest('#jobNameList')) {
       var jl = document.getElementById('jobNameList');
@@ -815,19 +805,13 @@
 
     setStatus('⏳ හොයනවා...', 'loading');
 
-    var encodedItem = encodeURIComponent(selectedItem);
-    var encodedAction = encodeURIComponent(action);
-    var encodedJobNo = encodeURIComponent(jobNo);
-    var encodedJobName = encodeURIComponent(jobName);
-    var encodedCity = encodeURIComponent(city);
-    
     var url = SCRIPT_URL + 
-              '?action=' + encodedAction + 
-              '&item=' + encodedItem + 
+              '?action=' + encodeURIComponent(action) + 
+              '&item=' + encodeURIComponent(selectedItem) + 
               '&quantity=' + qty + 
-              '&jobNo=' + encodedJobNo +
-              '&jobName=' + encodedJobName +
-              '&city=' + encodedCity +
+              '&jobNo=' + encodeURIComponent(jobNo) +
+              '&jobName=' + encodeURIComponent(jobName) +
+              '&city=' + encodeURIComponent(city) +
               '&t=' + Date.now();
 
     fetch(url, { method: 'GET', cache: 'no-store' })
@@ -1050,3 +1034,5 @@
 </script>
 </body>
 </html>
+
+</div>
