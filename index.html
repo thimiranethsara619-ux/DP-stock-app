@@ -134,6 +134,60 @@
       border-radius: 10px;
       font-size: 16px;
     }
+    /* Searchable dropdown */
+    .searchable-wrapper {
+      position: relative;
+    }
+    .searchable-input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      font-size: 16px;
+      background: white;
+      cursor: pointer;
+    }
+    .searchable-input:focus {
+      outline: none;
+      border-color: #ff6600;
+    }
+    .searchable-list {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 2px solid #ff6600;
+      border-top: none;
+      border-radius: 0 0 10px 10px;
+      max-height: 250px;
+      overflow-y: auto;
+      z-index: 1000;
+      display: none;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+    .searchable-list.show { display: block; }
+    .searchable-item {
+      padding: 12px 15px;
+      cursor: pointer;
+      font-size: 14px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .searchable-item:hover,
+    .searchable-item.highlighted {
+      background: #fff3e0;
+      color: #ff6600;
+    }
+    .searchable-item.selected {
+      background: #ff6600;
+      color: white;
+    }
+    .searchable-empty {
+      padding: 12px 15px;
+      font-size: 13px;
+      color: #999;
+      text-align: center;
+    }
     .btn-row {
       display: flex;
       gap: 8px;
@@ -357,17 +411,18 @@
 
       <div class="input-group">
         <label>📝 Job Name / Customer:</label>
-        <select id="jobNameSelect" class="select-box" onchange="onJobNameChange()">
-          <option value="">-- Select --</option>
-        </select>
-        <input type="text" id="jobNameOther" placeholder="අලුත් නම type කරන්න..." style="display:none; margin-top:5px;">
+        <div class="searchable-wrapper">
+          <input type="text" id="jobNameInput" class="searchable-input" placeholder="Type කරලා හොයන්න..." autocomplete="off" oninput="filterJobNames()" onfocus="showJobNameList()">
+          <div class="searchable-list" id="jobNameList"></div>
+        </div>
       </div>
 
       <div class="input-group">
         <label>📍 City:</label>
-        <select id="citySelect" class="select-box">
-          <option value="">-- Select --</option>
-        </select>
+        <div class="searchable-wrapper">
+          <input type="text" id="cityInput" class="searchable-input" placeholder="Type කරලා හොයන්න..." autocomplete="off" oninput="filterCities()" onfocus="showCityList()">
+          <div class="searchable-list" id="cityList"></div>
+        </div>
       </div>
 
       <div class="btn-row">
@@ -378,7 +433,7 @@
       <button class="btn-refresh" onclick="loadItems()">🔄 නැවත ලබා ගන්න</button>
       <div id="status"></div>
       <div class="auto-info" id="autoInfo">🔄 Auto-refresh: ON (30s)</div>
-      <div class="version-info" id="versionInfo">v3.2</div>
+      <div class="version-info" id="versionInfo">v3.3</div>
     </div>
   </div>
 
@@ -500,7 +555,7 @@
     <div class="card">
       <h1>ℹ️ About</h1>
       <p style="text-align:center;">DP Stock Inventory System</p>
-      <p style="text-align:center; font-size:12px; color:#888;">Version 3.2</p>
+      <p style="text-align:center; font-size:12px; color:#888;">Version 3.3</p>
     </div>
   </div>
 
@@ -509,6 +564,8 @@
 <script>
   var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbza1_O4AdYHA24D-yiSf59bgPbNRDXEq6gSlpMbiXq2PljejLZKcr0VvdW03FX1AhSm/exec';
   var allItems = [];
+  var allCustomers = [];
+  var allCities = [];
   var selectedItem = '';
   var refreshing = false;
   var waitingWorker = null;
@@ -563,18 +620,7 @@
     fetch(SCRIPT_URL + '?action=getCustomers&t=' + Date.now())
       .then(function(r) { return r.json(); })
       .then(function(customers) {
-        var select = document.getElementById('jobNameSelect');
-        select.innerHTML = '<option value="">-- Select --</option>';
-        for (var i = 0; i < customers.length; i++) {
-          var opt = document.createElement('option');
-          opt.value = customers[i];
-          opt.textContent = customers[i];
-          select.appendChild(opt);
-        }
-        var otherOpt = document.createElement('option');
-        otherOpt.value = '__OTHER__';
-        otherOpt.textContent = '➕ Other (Type new)';
-        select.appendChild(otherOpt);
+        allCustomers = customers;
       })
       .catch(function(err) { console.log('Customers error:', err); });
   }
@@ -583,37 +629,104 @@
     fetch(SCRIPT_URL + '?action=getLocations&t=' + Date.now())
       .then(function(r) { return r.json(); })
       .then(function(locations) {
-        var select = document.getElementById('citySelect');
-        select.innerHTML = '<option value="">-- Select --</option>';
-        for (var i = 0; i < locations.length; i++) {
-          var opt = document.createElement('option');
-          opt.value = locations[i];
-          opt.textContent = locations[i];
-          select.appendChild(opt);
-        }
+        allCities = locations;
       })
       .catch(function(err) { console.log('Locations error:', err); });
   }
 
-  function onJobNameChange() {
-    var select = document.getElementById('jobNameSelect');
-    var otherInput = document.getElementById('jobNameOther');
-    if (select.value === '__OTHER__') {
-      otherInput.style.display = 'block';
-      otherInput.focus();
+  // ============================================
+  // SEARCHABLE JOB NAME DROPDOWN
+  // ============================================
+  function showJobNameList() {
+    var list = document.getElementById('jobNameList');
+    var input = document.getElementById('jobNameInput');
+    var query = input.value.toLowerCase().trim();
+    
+    var filtered = allCustomers.filter(function(c) {
+      return c.toLowerCase().indexOf(query) !== -1;
+    });
+    
+    list.innerHTML = '';
+    
+    if (filtered.length === 0) {
+      list.innerHTML = '<div class="searchable-empty">නැහැ. අලුත් නමක් type කරන්න.</div>';
     } else {
-      otherInput.style.display = 'none';
-      otherInput.value = '';
+      for (var i = 0; i < filtered.length; i++) {
+        var item = document.createElement('div');
+        item.className = 'searchable-item';
+        item.textContent = filtered[i];
+        if (filtered[i] === input.value) item.className += ' selected';
+        item.onclick = (function(name) {
+          return function() { selectJobName(name); };
+        })(filtered[i]);
+        list.appendChild(item);
+      }
     }
+    
+    list.classList.add('show');
   }
 
-  function getJobName() {
-    var select = document.getElementById('jobNameSelect');
-    if (select.value === '__OTHER__') {
-      return document.getElementById('jobNameOther').value.trim();
-    }
-    return select.value;
+  function filterJobNames() {
+    showJobNameList();
   }
+
+  function selectJobName(name) {
+    document.getElementById('jobNameInput').value = name;
+    document.getElementById('jobNameList').classList.remove('show');
+  }
+
+  // ============================================
+  // SEARCHABLE CITY DROPDOWN
+  // ============================================
+  function showCityList() {
+    var list = document.getElementById('cityList');
+    var input = document.getElementById('cityInput');
+    var query = input.value.toLowerCase().trim();
+    
+    var filtered = allCities.filter(function(c) {
+      return c.toLowerCase().indexOf(query) !== -1;
+    });
+    
+    list.innerHTML = '';
+    
+    if (filtered.length === 0) {
+      list.innerHTML = '<div class="searchable-empty">නගරයක් හම්බුනේ නැහැ.</div>';
+    } else {
+      for (var i = 0; i < filtered.length; i++) {
+        var item = document.createElement('div');
+        item.className = 'searchable-item';
+        item.textContent = filtered[i];
+        if (filtered[i] === input.value) item.className += ' selected';
+        item.onclick = (function(name) {
+          return function() { selectCity(name); };
+        })(filtered[i]);
+        list.appendChild(item);
+      }
+    }
+    
+    list.classList.add('show');
+  }
+
+  function filterCities() {
+    showCityList();
+  }
+
+  function selectCity(name) {
+    document.getElementById('cityInput').value = name;
+    document.getElementById('cityList').classList.remove('show');
+  }
+
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('#jobNameInput') && !e.target.closest('#jobNameList')) {
+      var jl = document.getElementById('jobNameList');
+      if (jl) jl.classList.remove('show');
+    }
+    if (!e.target.closest('#cityInput') && !e.target.closest('#cityList')) {
+      var cl = document.getElementById('cityList');
+      if (cl) cl.classList.remove('show');
+    }
+  });
 
   function loadItems() {
     if (refreshing) return;
@@ -686,15 +799,14 @@
   function doAction(action) {
     var qty = parseInt(document.getElementById('qtyInput').value) || 0;
     var jobNo = document.getElementById('jobNoInput').value.trim();
-    var jobName = getJobName();
-    var city = document.getElementById('citySelect').value;
+    var jobName = document.getElementById('jobNameInput').value.trim();
+    var city = document.getElementById('cityInput').value.trim();
     
     if (!selectedItem) { setStatus('භාණ්ඩයක් තෝරන්න.', 'error'); return; }
     if ((action === 'add' || action === 'remove') && qty <= 0) {
-      setStatus('ප්‍රමාණය ඇතුළත් කරන්න.', 'error'); return;
+      setStatus('ප්රමාණය ඇතුළත් කරන්න.', 'error'); return;
     }
     
-    // Stock Out කරද්දී Job No, Job Name, City අනිවාර්ය
     if (action === 'remove') {
       if (!jobNo) { setStatus('Job No ඇතුළත් කරන්න.', 'error'); return; }
       if (!jobName) { setStatus('Job Name තෝරන්න.', 'error'); return; }
