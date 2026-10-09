@@ -41,7 +41,6 @@
       position: sticky;
       top: 0;
       z-index: 100;
-      width: 100%;
     }
     .menu-btn {
       font-size: 28px;
@@ -70,7 +69,6 @@
       max-width: 600px;
       margin: 20px auto;
       padding: 0 20px;
-      width: 100%;
     }
     .card {
       background: white;
@@ -99,13 +97,14 @@
       margin-bottom: 5px;
       font-weight: bold;
     }
-    .search-box {
+    .search-box, .text-input, .select-box {
       width: 100%;
       padding: 10px;
       border: 2px solid #ddd;
       border-radius: 8px;
       font-size: 14px;
       margin-bottom: 5px;
+      background: white;
     }
     .item-list {
       width: 100%;
@@ -125,13 +124,8 @@
     }
     .item-row:hover { background: #f0f0f0; }
     .item-row.selected { background: #ff6600; color: white; }
-    .input-group input[type="number"] {
-      width: 100%;
-      padding: 12px;
-      border: 2px solid #ddd;
-      border-radius: 10px;
-      font-size: 16px;
-    }
+    .input-group input[type="number"],
+    .input-group input[type="text"],
     .input-group input[type="date"],
     .input-group input[type="month"] {
       width: 100%;
@@ -342,6 +336,7 @@
   <div id="stock" class="page active">
     <div class="card">
       <h1>Stock Management</h1>
+      
       <div class="input-group">
         <label>භාණ්ඩය තෝරන්න:</label>
         <input type="text" id="searchBox" class="search-box" placeholder="🔍 Type කරලා search කරන්න..." oninput="filterItems()">
@@ -349,10 +344,32 @@
           <div class="item-row">Loading...</div>
         </div>
       </div>
+
       <div class="input-group">
         <label>ප්‍රමාණය:</label>
         <input type="number" id="qtyInput" placeholder="උදා: 10" value="0">
       </div>
+
+      <div class="input-group">
+        <label>🔢 Job No:</label>
+        <input type="text" id="jobNoInput" placeholder="උදා: 0001" class="text-input">
+      </div>
+
+      <div class="input-group">
+        <label>📝 Job Name / Customer:</label>
+        <select id="jobNameSelect" class="select-box" onchange="onJobNameChange()">
+          <option value="">-- Select --</option>
+        </select>
+        <input type="text" id="jobNameOther" placeholder="අලුත් නම type කරන්න..." style="display:none; margin-top:5px;">
+      </div>
+
+      <div class="input-group">
+        <label>📍 City:</label>
+        <select id="citySelect" class="select-box">
+          <option value="">-- Select --</option>
+        </select>
+      </div>
+
       <div class="btn-row">
         <button class="btn btn-add" onclick="doAction('add')">➕ එකතු</button>
         <button class="btn btn-remove" onclick="doAction('remove')">➖ අයින්</button>
@@ -361,7 +378,7 @@
       <button class="btn-refresh" onclick="loadItems()">🔄 නැවත ලබා ගන්න</button>
       <div id="status"></div>
       <div class="auto-info" id="autoInfo">🔄 Auto-refresh: ON (30s)</div>
-      <div class="version-info" id="versionInfo">v3.1</div>
+      <div class="version-info" id="versionInfo">v3.2</div>
     </div>
   </div>
 
@@ -483,7 +500,7 @@
     <div class="card">
       <h1>ℹ️ About</h1>
       <p style="text-align:center;">DP Stock Inventory System</p>
-      <p style="text-align:center; font-size:12px; color:#888;">Version 3.1</p>
+      <p style="text-align:center; font-size:12px; color:#888;">Version 3.2</p>
     </div>
   </div>
 
@@ -540,6 +557,62 @@
   function updateDashboard() {
     document.getElementById('totalItems').textContent = allItems.length;
     document.getElementById('lowStock').textContent = '0';
+  }
+
+  function loadCustomers() {
+    fetch(SCRIPT_URL + '?action=getCustomers&t=' + Date.now())
+      .then(function(r) { return r.json(); })
+      .then(function(customers) {
+        var select = document.getElementById('jobNameSelect');
+        select.innerHTML = '<option value="">-- Select --</option>';
+        for (var i = 0; i < customers.length; i++) {
+          var opt = document.createElement('option');
+          opt.value = customers[i];
+          opt.textContent = customers[i];
+          select.appendChild(opt);
+        }
+        var otherOpt = document.createElement('option');
+        otherOpt.value = '__OTHER__';
+        otherOpt.textContent = '➕ Other (Type new)';
+        select.appendChild(otherOpt);
+      })
+      .catch(function(err) { console.log('Customers error:', err); });
+  }
+
+  function loadLocations() {
+    fetch(SCRIPT_URL + '?action=getLocations&t=' + Date.now())
+      .then(function(r) { return r.json(); })
+      .then(function(locations) {
+        var select = document.getElementById('citySelect');
+        select.innerHTML = '<option value="">-- Select --</option>';
+        for (var i = 0; i < locations.length; i++) {
+          var opt = document.createElement('option');
+          opt.value = locations[i];
+          opt.textContent = locations[i];
+          select.appendChild(opt);
+        }
+      })
+      .catch(function(err) { console.log('Locations error:', err); });
+  }
+
+  function onJobNameChange() {
+    var select = document.getElementById('jobNameSelect');
+    var otherInput = document.getElementById('jobNameOther');
+    if (select.value === '__OTHER__') {
+      otherInput.style.display = 'block';
+      otherInput.focus();
+    } else {
+      otherInput.style.display = 'none';
+      otherInput.value = '';
+    }
+  }
+
+  function getJobName() {
+    var select = document.getElementById('jobNameSelect');
+    if (select.value === '__OTHER__') {
+      return document.getElementById('jobNameOther').value.trim();
+    }
+    return select.value;
   }
 
   function loadItems() {
@@ -612,17 +685,38 @@
 
   function doAction(action) {
     var qty = parseInt(document.getElementById('qtyInput').value) || 0;
+    var jobNo = document.getElementById('jobNoInput').value.trim();
+    var jobName = getJobName();
+    var city = document.getElementById('citySelect').value;
+    
     if (!selectedItem) { setStatus('භාණ්ඩයක් තෝරන්න.', 'error'); return; }
     if ((action === 'add' || action === 'remove') && qty <= 0) {
       setStatus('ප්‍රමාණය ඇතුළත් කරන්න.', 'error'); return;
+    }
+    
+    // Stock Out කරද්දී Job No, Job Name, City අනිවාර්ය
+    if (action === 'remove') {
+      if (!jobNo) { setStatus('Job No ඇතුළත් කරන්න.', 'error'); return; }
+      if (!jobName) { setStatus('Job Name තෝරන්න.', 'error'); return; }
+      if (!city) { setStatus('City තෝරන්න.', 'error'); return; }
     }
 
     setStatus('⏳ හොයනවා...', 'loading');
 
     var encodedItem = encodeURIComponent(selectedItem);
     var encodedAction = encodeURIComponent(action);
+    var encodedJobNo = encodeURIComponent(jobNo);
+    var encodedJobName = encodeURIComponent(jobName);
+    var encodedCity = encodeURIComponent(city);
     
-    var url = SCRIPT_URL + '?action=' + encodedAction + '&item=' + encodedItem + '&quantity=' + qty + '&t=' + Date.now();
+    var url = SCRIPT_URL + 
+              '?action=' + encodedAction + 
+              '&item=' + encodedItem + 
+              '&quantity=' + qty + 
+              '&jobNo=' + encodedJobNo +
+              '&jobName=' + encodedJobName +
+              '&city=' + encodedCity +
+              '&t=' + Date.now();
 
     fetch(url, { method: 'GET', cache: 'no-store' })
       .then(function(r) {
@@ -668,7 +762,11 @@
           row.className = 'item-row';
           var typeIcon = m.in > 0 ? '🟢 IN' : '🔴 OUT';
           var qty = m.in > 0 ? m.in : m.out;
-          row.innerHTML = '<strong>' + typeIcon + '</strong> — ' + m.code + ' — ' + m.description + ' — <strong>' + qty + '</strong>';
+          var extra = '';
+          if (m.jobNo) extra += ' | Job: ' + m.jobNo;
+          if (m.jobName) extra += ' | ' + m.jobName;
+          if (m.city) extra += ' | ' + m.city;
+          row.innerHTML = '<strong>' + typeIcon + '</strong> — ' + m.code + ' — ' + m.description + ' — <strong>' + qty + '</strong>' + extra;
           list.appendChild(row);
         }
       })
@@ -688,16 +786,16 @@
     
     var printWindow = window.open('', '_blank');
     var html = '<html><head><title>Daily Report - ' + currentReport.date + '</title>';
-    html += '<style>body{font-family:Arial;padding:20px;}h1{color:#ff6600;}table{width:100%;border-collapse:collapse;margin-top:20px;}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:12px;}th{background:#ff6600;color:white;}.summary{display:flex;gap:20px;margin:20px 0;}.box{padding:20px;border-radius:10px;color:white;flex:1;text-align:center;}.in{background:#4CAF50;}.out{background:#f44336;}.box .value{font-size:32px;font-weight:bold;}</style></head><body>';
+    html += '<style>body{font-family:Arial;padding:20px;}h1{color:#ff6600;}table{width:100%;border-collapse:collapse;margin-top:20px;}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:11px;}th{background:#ff6600;color:white;}.summary{display:flex;gap:20px;margin:20px 0;}.box{padding:20px;border-radius:10px;color:white;flex:1;text-align:center;}.in{background:#4CAF50;}.out{background:#f44336;}.box .value{font-size:32px;font-weight:bold;}</style></head><body>';
     html += '<h1>📊 Daily Stock Report</h1>';
     html += '<p><strong>Date:</strong> ' + currentReport.date + '</p>';
     html += '<div class="summary">';
     html += '<div class="box in"><div class="value">' + currentReport.totalIn + '</div>Stock In</div>';
     html += '<div class="box out"><div class="value">' + currentReport.totalOut + '</div>Stock Out</div>';
-    html += '</div><table><tr><th>Code</th><th>Description</th><th>Unit</th><th>In</th><th>Out</th><th>Balance</th></tr>';
+    html += '</div><table><tr><th>Code</th><th>Description</th><th>In</th><th>Out</th><th>Job No</th><th>Job Name</th><th>City</th><th>Balance</th></tr>';
     for (var i = 0; i < currentReport.movements.length; i++) {
       var m = currentReport.movements[i];
-      html += '<tr><td>' + m.code + '</td><td>' + m.description + '</td><td>' + m.unit + '</td><td>' + (m.in || '') + '</td><td>' + (m.out || '') + '</td><td>' + m.balance + '</td></tr>';
+      html += '<tr><td>' + m.code + '</td><td>' + m.description + '</td><td>' + (m.in || '') + '</td><td>' + (m.out || '') + '</td><td>' + (m.jobNo || '') + '</td><td>' + (m.jobName || '') + '</td><td>' + (m.city || '') + '</td><td>' + m.balance + '</td></tr>';
     }
     html += '</table><p style="margin-top:20px;font-size:11px;color:#888;">Generated by DP Stock Inventory System</p></body></html>';
     
@@ -735,7 +833,10 @@
           row.className = 'item-row';
           var typeIcon = m.in > 0 ? '🟢 IN' : '🔴 OUT';
           var qty = m.in > 0 ? m.in : m.out;
-          row.innerHTML = '<strong>' + m.date + '</strong> — ' + typeIcon + ' — ' + m.code + ' — ' + m.description + ' — <strong>' + qty + '</strong>';
+          var extra = '';
+          if (m.jobNo) extra += ' | Job: ' + m.jobNo;
+          if (m.city) extra += ' | ' + m.city;
+          row.innerHTML = '<strong>' + m.date + '</strong> — ' + typeIcon + ' — ' + m.code + ' — ' + m.description + ' — <strong>' + qty + '</strong>' + extra;
           list.appendChild(row);
         }
       })
@@ -761,10 +862,10 @@
     html += '<div class="summary">';
     html += '<div class="box in"><div class="value">' + currentMonthlyReport.totalIn + '</div>Stock In</div>';
     html += '<div class="box out"><div class="value">' + currentMonthlyReport.totalOut + '</div>Stock Out</div>';
-    html += '</div><table><tr><th>Date</th><th>Code</th><th>Description</th><th>Unit</th><th>In</th><th>Out</th><th>Balance</th></tr>';
+    html += '</div><table><tr><th>Date</th><th>Code</th><th>Description</th><th>In</th><th>Out</th><th>Job No</th><th>Job Name</th><th>City</th><th>Balance</th></tr>';
     for (var i = 0; i < currentMonthlyReport.movements.length; i++) {
       var m = currentMonthlyReport.movements[i];
-      html += '<tr><td>' + m.date + '</td><td>' + m.code + '</td><td>' + m.description + '</td><td>' + m.unit + '</td><td>' + (m.in || '') + '</td><td>' + (m.out || '') + '</td><td>' + m.balance + '</td></tr>';
+      html += '<tr><td>' + m.date + '</td><td>' + m.code + '</td><td>' + m.description + '</td><td>' + (m.in || '') + '</td><td>' + (m.out || '') + '</td><td>' + (m.jobNo || '') + '</td><td>' + (m.jobName || '') + '</td><td>' + (m.city || '') + '</td><td>' + m.balance + '</td></tr>';
     }
     html += '</table><p style="margin-top:20px;font-size:11px;color:#888;">Generated by DP Stock Inventory System</p></body></html>';
     
@@ -825,6 +926,8 @@
 
   window.onload = function() {
     loadItems();
+    loadCustomers();
+    loadLocations();
     setInterval(loadItems, 30000);
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistration().then(function(reg) {
